@@ -142,16 +142,16 @@ var/global/datum/controller/subsystem/ticker/ticker
 		to_world("<span class='danger'>Serious error in mode setup! Reverting to pregame lobby.</span>") //Uses setup instead of set up due to computational context.
 		return 0
 
-	job_master.ResetOccupations()
+	SSjob.reset_occupations()
 	src.mode.create_antagonists()
 	src.mode.pre_setup()
-	job_master.DivideOccupations() // Apparently important for new antagonist system to register specific job antags properly.
+	SSjob.divide_occupations() // Apparently important for new antagonist system to register specific job antags properly.
 
 	if(!src.mode.can_start())
 		to_world("<span class='danger'><B>Unable to start [mode.name].</B> Not enough players readied, [config.player_requirements[mode.config_tag]] players needed. Reverting to pregame lobby.</span>")
 		mode.fail_setup()
 		mode = null
-		job_master.ResetOccupations()
+		SSjob.reset_occupations()
 		return 0
 
 	if(hide_mode)
@@ -430,7 +430,7 @@ var/global/datum/controller/subsystem/ticker/ticker
 			if(player.mind.assigned_role == "Site Manager")
 				captainless=0
 			if(!player_is_antag(player.mind, only_offstation_roles = 1))
-				job_master.EquipRank(player, player.mind.assigned_role, 0)
+				SSjob.equip_rank(player, player.mind.assigned_role, 0)
 				if(!QDELETED(player))
 					UpdateFactionList(player)
 					equip_custom_items(player)

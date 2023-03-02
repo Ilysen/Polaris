@@ -39,20 +39,16 @@
 	pref.job_engsec_high	= sanitize_integer(pref.job_engsec_high, 0, 65535, initial(pref.job_engsec_high))
 	pref.job_engsec_med 	= sanitize_integer(pref.job_engsec_med, 0, 65535, initial(pref.job_engsec_med))
 	pref.job_engsec_low 	= sanitize_integer(pref.job_engsec_low, 0, 65535, initial(pref.job_engsec_low))
-	if(!(pref.player_alt_titles)) pref.player_alt_titles = new()
 
-	if(!job_master)
-		return
+	if(!(pref.player_alt_titles))
+		pref.player_alt_titles = new()
 
-	for(var/datum/job/job in job_master.occupations)
+	for(var/datum/job/job in SSjob.occupations)
 		var/alt_title = pref.player_alt_titles[job.title]
 		if(alt_title && !(alt_title in job.alt_titles))
 			pref.player_alt_titles -= job.title
 
 /datum/category_item/player_setup_item/occupation/content(mob/user, limit = 20, list/splitJobs = list())
-	if(!job_master)
-		return
-
 	. = list()
 	. += "<tt><center>"
 	. += "<b>Choose occupation chances</b><br>Unavailable occupations are crossed out.<br>"
@@ -222,7 +218,7 @@
 
 	else if(href_list["job_info"])
 		var/rank = href_list["job_info"]
-		var/datum/job/job = job_master.GetJob(rank)
+		var/datum/job/job = SSjob.get_job(rank)
 		var/dat = list()
 
 		dat += "<p style='background-color: [job.selection_color]'><br><br><p>"
@@ -268,7 +264,7 @@
 		pref.player_alt_titles[job.title] = new_title
 
 /datum/category_item/player_setup_item/occupation/proc/SetJob(mob/user, role, level)
-	var/datum/job/job = job_master.GetJob(role)
+	var/datum/job/job = SSjob.get_job(role)
 	if(!job)
 		return FALSE
 

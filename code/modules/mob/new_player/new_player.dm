@@ -372,7 +372,7 @@
 	return timer - world.time
 
 /mob/new_player/proc/IsJobAvailable(rank)
-	var/datum/job/job = job_master.GetJob(rank)
+	var/datum/job/job = SSjob.get_job(rank)
 	if(!job)	return 0
 	if(!job.is_position_available()) return 0
 	if(jobban_isbanned(src,rank))	return 0
@@ -396,7 +396,7 @@
 		return 0
 
 	//Find our spawning point.
-	var/list/join_props = job_master.LateSpawn(client, rank)
+	var/list/join_props = SSjob.late_spawn(client, rank)
 
 	if(!join_props)
 		return
@@ -411,10 +411,10 @@
 	spawning = 1
 	close_spawn_windows()
 
-	job_master.AssignRole(src, rank, 1)
+	SSjob.assign_role(src, rank, 1)
 
 	var/mob/living/character = create_character(T)	//creates the human and transfers vars and mind
-	character = job_master.EquipRank(character, rank, 1)					//equips the human
+	character = SSjob.equip_rank(character, rank, 1)					//equips the human
 	UpdateFactionList(character)
 
 	var/datum/job/J = SSjob.get_job(rank)
@@ -490,7 +490,7 @@
 	dat += "<a href='byond://?src=\ref[src];hidden_jobs=1'>[show_hidden_jobs ? "Hide":"Show"] Hidden Jobs.</a><br>"
 
 	var/deferred = ""
-	for(var/datum/job/job in job_master.occupations)
+	for(var/datum/job/job in SSjob.occupations)
 		if(job && IsJobAvailable(job.title))
 			if(!job.passes_standard_join_checks(src, job.title))
 				continue

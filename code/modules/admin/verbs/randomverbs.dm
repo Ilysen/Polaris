@@ -507,10 +507,10 @@ Traitors and the like can also be revived with the previous role mostly intact.
 	if(equipment)
 		if(charjob)
 			var/datum/mind/player_mind = new_character.mind
-			job_master.EquipRank(new_character, charjob, 1)
+			SSjob.equip_rank(new_character, charjob, 1)
 			if(player_mind)
 				player_mind.assigned_role = charjob
-				player_mind.role_alt_title = job_master.GetPlayerAltTitle(new_character, charjob)
+				player_mind.role_alt_title = SSjob.get_player_alt_title(new_character, charjob)
 		equip_custom_items(new_character)
 
 	//If desired, add records.
@@ -629,9 +629,8 @@ Traitors and the like can also be revived with the previous role mostly intact.
 	if (!holder)
 		return
 
-	if(job_master)
-		for(var/datum/job/job in job_master.occupations)
-			to_chat(src, "[job.title]: [job.total_positions]")
+	for(var/datum/job/job in SSjob.occupations)
+		to_chat(src, "[job.title]: [job.total_positions]")
 	feedback_add_details("admin_verb","LFS") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
 /client/proc/cmd_admin_explosion(atom/O as obj|mob|turf in world)
