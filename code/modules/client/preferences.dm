@@ -248,14 +248,19 @@ var/global/list/preferences_datums = list()
 		dat += "<a href='?src=\ref[src];save=1'>Save slot</a> - "
 		dat += "<a href='?src=\ref[src];reload=1'>Reload slot</a> - "
 		dat += "<a href='?src=\ref[src];resetslot=1'>Reset slot</a> - "
-		dat += "<a href='?src=\ref[src];copy=1'>Copy slot</a> -"
-		dat += "<a href='?src=\ref[src];export=1'>Export character</a> -"
-		dat += "<a href='?src=\ref[src];import=1'>Import character</a>"
+		dat += "<a href='?src=\ref[src];copy=1'>Copy slot</a>"
 
 	else
 		dat += "Please create an account to save your preferences."
 
+
 	dat += "<br>"
+
+	if (path)
+		dat += "<a href='?src=\ref[src];export=1'>Export code</a> -"
+		dat += "<a href='?src=\ref[src];import=1'>Import from code</a>"
+		dat += "<br>"
+
 	dat += player_setup.header()
 	dat += "<br><HR></center>"
 	dat += player_setup.content(user)
@@ -353,6 +358,8 @@ var/global/list/preferences_datums = list()
 		export_to_code()
 	else if (href_list["import"])
 		import_from_code()
+		clear_character_previews()
+		sanitize_preferences()
 	else if(href_list["overwrite"])
 		overwrite_character(text2num(href_list["overwrite"]))
 		sanitize_preferences()
@@ -369,22 +376,68 @@ var/global/list/preferences_datums = list()
 
 /datum/preferences/proc/export_to_code()
 	var/list/data = list()
-	data["hair_style"] = h_style
-	data["hair_color"] = rgb(r_hair, g_hair, b_hair)
-	var/code = list2params(data)
-	input(usr, "You can copy your code here and import it for later use.", "Export Character", code) as null|text
+	var/datum/species/mob_species = GLOB.all_species[species]
+	// Basic info
+	data["species"] = species
+	data["real_name"] = real_name
+	data["nickname"] = nickname
+	data["age"] = age
+	data["biological_gender"] = biological_gender
+	data["identifying_gender"] = identifying_gender
+	data["traits"] = traits
+	data["alternate_languages"] = alternate_languages
+	data["language_prefixes"] = language_prefixes
+
+	// Appearance
+	data["h_style"] = h_style
+	data["f_style"] = f_style
+	data["grad_style"] = grad_style
+	if (mob_species)
+		if (mob_species.appearance_flags & HAS_SKIN_TONE)
+			data["s_tone"] = s_tone
+		if (mob_species.appearance_flags & HAS_SKIN_COLOR)
+			data["r_skin"] = r_skin
+			data["g_skin"] = g_skin
+			data["b_skin"] = b_skin
+		if (mob_species.appearance_flags & HAS_HAIR_COLOR)
+			data["r_hair"] = r_hair
+			data["g_hair"] = g_hair
+			data["b_hair"] = b_hair
+			data["r_facial"] = r_facial
+			data["g_facial"] = g_facial
+			data["b_facial"] = b_facial
+			data["r_grad"] = r_grad
+			data["g_grad"] = g_grad
+			data["b_grad"] = b_grad
+		if (mob_species.appearance_flags & HAS_EYE_COLOR)
+			data["r_eyes"] = r_eyes
+			data["g_eyes"] = g_eyes
+			data["b_eyes"] = b_eyes
+
+	// Background
+	data["citizenship"] = citizenship
+	data["home_system"] = home_system
+	data["faction"] = faction
+	data["religion"] = religion
+	data["economic_status"] = economic_status
+
+	// Misc
+	data["spawnpoint"] = spawnpoint
+	data["b_type"] = b_type
+	data["backbag"] = backbag
+	data["communicator_visibility"] = communicator_visibility
+
+	var/code = json_encode(data)
+	input(usr, "You can copy this code and paste it elsewhere to use it there. Appearance information is included, but job preferences are not.", "Export Character", code) as null|message
 
 /datum/preferences/proc/import_from_code()
-	var/to_decode = input(usr, "Paste a character code here.", "Import Character") as null|text
+	var/to_decode = input(usr, "Paste a valid character code here.", "Import Character") as null|text
 	if (!to_decode)
 		return
-	var/list/code = params2list(to_decode)
-	h_style = code["hair_style"]
-	var/list/RGB = rgb2num(code["hair_style"])
-	if (RGB)
-		r_hair = RGB[1]
-		g_hair = RGB[2]
-		b_hair = RGB[3]
+	var/list/code = json_decode(to_decode)
+	for (var/key in code)
+		if (key in vars)
+			vars[key] = code[key]
 	to_chat(usr, SPAN_NOTICE("Character loaded from code."))
 
 /datum/preferences/proc/copy_to(mob/living/carbon/human/character, icon_updates = TRUE)
