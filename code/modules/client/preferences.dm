@@ -248,7 +248,9 @@ var/global/list/preferences_datums = list()
 		dat += "<a href='?src=\ref[src];save=1'>Save slot</a> - "
 		dat += "<a href='?src=\ref[src];reload=1'>Reload slot</a> - "
 		dat += "<a href='?src=\ref[src];resetslot=1'>Reset slot</a> - "
-		dat += "<a href='?src=\ref[src];copy=1'>Copy slot</a>"
+		dat += "<a href='?src=\ref[src];copy=1'>Copy slot</a> -"
+		dat += "<a href='?src=\ref[src];export=1'>Export character</a> -"
+		dat += "<a href='?src=\ref[src];import=1'>Import character</a>"
 
 	else
 		dat += "Please create an account to save your preferences."
@@ -347,6 +349,10 @@ var/global/list/preferences_datums = list()
 		if(!IsGuestKey(usr.key))
 			open_copy_dialog(usr)
 			return 1
+	else if (href_list["export"])
+		export_to_code()
+	else if (href_list["import"])
+		import_from_code()
 	else if(href_list["overwrite"])
 		overwrite_character(text2num(href_list["overwrite"]))
 		sanitize_preferences()
@@ -360,6 +366,26 @@ var/global/list/preferences_datums = list()
 
 	ShowChoices(usr)
 	return 1
+
+/datum/preferences/proc/export_to_code()
+	var/list/data = list()
+	data["hair_style"] = h_style
+	data["hair_color"] = rgb(r_hair, g_hair, b_hair)
+	var/code = list2params(data)
+	input(usr, "You can copy your code here and import it for later use.", "Export Character", code) as null|text
+
+/datum/preferences/proc/import_from_code()
+	var/to_decode = input(usr, "Paste a character code here.", "Import Character") as null|text
+	if (!to_decode)
+		return
+	var/list/code = params2list(to_decode)
+	h_style = code["hair_style"]
+	var/list/RGB = rgb2num(code["hair_style"])
+	if (RGB)
+		r_hair = RGB[1]
+		g_hair = RGB[2]
+		b_hair = RGB[3]
+	to_chat(usr, SPAN_NOTICE("Character loaded from code."))
 
 /datum/preferences/proc/copy_to(mob/living/carbon/human/character, icon_updates = TRUE)
 	// Sanitizing rather than saving as someone might still be editing when copy_to occurs.
