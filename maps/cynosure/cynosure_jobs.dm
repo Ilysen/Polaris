@@ -156,7 +156,7 @@ var/global/const/access_explorer = 43
 		E.update_damages()
 
 /datum/job/survivalist/get_latejoin_spawn_locations(var/mob/spawning, var/rank)
-	var/alt_title = spawning?.client?.prefs?.GetPlayerAltTitle(job_master.GetJob(rank))
+	var/alt_title = spawning?.client?.prefs?.GetPlayerAltTitle(SSjob.get_job(rank))
 	if(alt_title == CRASH_SURVIVOR_TITLE)
 		return get_spawn_locations(spawning, rank)
 	return ..()
@@ -168,7 +168,7 @@ var/global/const/access_explorer = 43
 
 /datum/job/survivalist/get_spawn_locations(var/mob/spawning, var/rank)
 
-	var/alt_title = spawning?.client?.prefs?.GetPlayerAltTitle(job_master.GetJob(rank))
+	var/alt_title = spawning?.client?.prefs?.GetPlayerAltTitle(SSjob.get_job(rank))
 	if(!spawning || alt_title != CRASH_SURVIVOR_TITLE)
 		return ..()
 
