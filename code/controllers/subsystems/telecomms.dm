@@ -1,3 +1,9 @@
+/**
+ * The telecomms subsystem receives and routes packet datums.
+ *
+ * Each time an atom sends a packet, it gets received by this subsystem, which then redistributes the packet to all qualifying devices.
+ * The subsystem itself handles the simulation of routing, distance, etc; it's where packets "float" while they get distributed around.
+ */
 SUBSYSTEM_DEF(telecomms)
 	name = "Telecomms"
 	flags = SS_NO_INIT | SS_NO_FIRE
@@ -5,22 +11,25 @@ SUBSYSTEM_DEF(telecomms)
 	var/static/list/hubs
 
 /datum/controller/subsystem/telecomms/proc/transmit_packet(datum/packet/P)
-	if (!P?.source)
+	to_world("Tcomms system received packet (source: [P.source], payload length: [LAZYLEN(P.payload)])")
+	if (!P || !P.source)
+		to_world("Source check failed ([!P])")
 		return
 	var/turf/source_turf = get_turf(P.source)
-	var/list/signal_spread = GetConnectedZlevels(source_turf)
+	var/list/signal_spread = GetConnectedZlevels(source_turf.z)
 	if (P.subspace)
 		var/obj/machinery/telecomms/hub/chosen_hub
 		for (var/obj/machinery/telecomms/hub/H in hubs)
 			if (!H.on)
 				continue
-			var/list/hub_zlevels = GetConnectedZlevels(get_turf(H))
+			var/list/hub_zlevels = GetConnectedZlevels(get_turf(H).z)
 			for (var/Z in hub_zlevels)
 				if (signal_spread.Find(Z))
 					chosen_hub = H
 					P.source = chosen_hub // Log the packet and its source, with the hub becoming the new source via routing
 					break
 		if (!chosen_hub)
+			to_world("Failed - no hub for subspace transmitter")
 			return
 	var/effective_latency = P.get_latency()
 	for (var/atom/A in devices)
@@ -29,19 +38,20 @@ SUBSYSTEM_DEF(telecomms)
 			continue
 		if (!P.cross_z)
 			var/is_connected
-			var/list/receiver_zlevels = GetConnectedZlevels(T)
+			var/list/receiver_zlevels = GetConnectedZlevels(T.z)
 			for (var/Z in signal_spread)
 				if (receiver_zlevels.Find(Z))
 					is_connected = TRUE
 					break
 			if (!is_connected)
 				continue
+		to_world("Dispatching packet to atom [A] in devices")
 		addtimer(CALLBACK(src, .proc/send_packet_to_atom, A, P), effective_latency)
 	// We shouldn't need much time for this, but we give it a buffer for safety reasons
 	QDEL_IN(P, max(1, effective_latency) * 2)
 
 /datum/controller/subsystem/telecomms/proc/send_packet_to_atom(atom/A, datum/packet/P)
-	if (!P?.source)
+	if (!P || !P.source)
 		return
 	A.receive_packet(P)
 
@@ -68,10 +78,10 @@ SUBSYSTEM_DEF(telecomms)
 	var/atom/source
 	/// A list of the data contained in this signal.
 	var/list/payload
-	/// An optional string or number attached to this signal. Encrypted signals can't be received by devices that don't hack the same encryption in some way.
-	var/encryption
 	/// The frequency this signal is being sent with.
 	var/frequency = 0
+	/// An optional string or number attached to this signal. Can be used to make "secure" signals that can only be received by devices with the right information/etc.
+	var/encryption
 	/// Subspace signals must be routed through a telecomms hub, but are usually global.
 	/// Non-subspace signals do not require a hub but are usually local instead.
 	/// Generally speaking, headsets transmit subspace signals, while intercoms, handheld radios, etc do not.
@@ -94,58 +104,23 @@ SUBSYSTEM_DEF(telecomms)
 		random_latency = rand(latency_range[1], latency_range[2])
 	return max(0, latency) + max(0, random_latency)
 
-/datum/packet/New(_source, _payload, _encryption, _frequency, _subspace, _range, _cross_z, _latency, _latency_range)
-	if (!isnull(source))
+/datum/packet/proc/assemble(_source, _payload, _encryption, _frequency, _subspace, _range, _cross_z, _latency, _latency_range)
+	to_world("Initializing new packet with args [args.Join(", ")]")
+	if (!isnull(_source))
 		source = _source
-	if (!isnull(payload))
+	if (!isnull(_payload))
 		payload = _payload
-	if (!isnull(encryption))
+	if (!isnull(_encryption))
 		encryption = _encryption
-	if (!isnull(frequency))
+	if (!isnull(_frequency))
 		frequency = _frequency
-	if (!isnull(subspace))
+	if (!isnull(_subspace))
 		subspace = _subspace
-	if (!isnull(range))
+	if (!isnull(_range))
 		range = _range
-	if (!isnull(cross_z))
+	if (!isnull(_cross_z))
 		cross_z = _cross_z
-	if (!isnull(latency))
+	if (!isnull(_latency))
 		latency = _latency
 	if (LAZYLEN(latency_range))
 		latency_range = _latency_range
-	return ..()
-
-
-
-/obj/item/new_radio
-	icon = 'icons/obj/radio.dmi'
-	name = "station bounced radio"
-	desc = "Used to talk to people when headsets don't function. Range is limited."
-	suffix = "\[3\]"
-	icon_state = "walkietalkie"
-	item_state = "radio"
-	slot_flags = SLOT_BELT
-	w_class = ITEMSIZE_SMALL
-	telecomms_receiver = TRUE
-
-	var/enabled = TRUE
-	var/sending = FALSE
-	var/receiving = TRUE
-	var/frequency = PUB_FREQ
-
-/obj/item/new_radio/talk_into(mob/M, list/message_pieces, verb = "says")
-	if (!enabled)
-		return
-	if (!M || !LAZYLEN(message_pieces))
-		return
-	if (istype(M))
-		M.trigger_aiming(TARGET_CAN_RADIO)
-	send_packet(src, list("message" = message_pieces.Join()), null, frequency, TRUE)
-
-/obj/item/new_radio/receive_packet(datum/packet/P)
-	if (P.frequency != frequency)
-		return
-	var/message = P.data["message"]
-	if (message)
-		visible_message(SPAN_NOTICE(message))
-		playsound(loc, 'sound/effects/radio_common.ogg', 20, TRUE, TRUE, preference = /datum/client_preference/radio_sounds)

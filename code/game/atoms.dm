@@ -682,8 +682,10 @@ var/global/list/pre_init_created_atoms // atom creation ordering means some stuf
 	return gender
 
 /atom/proc/send_packet(...)
-	var/datum/packet/P = new (null, args)
-	SStelecomms.send_packet(P)
+	to_world("Assembling packet with arguments: [args.Join(", ")]")
+	var/datum/packet/P = new (null)
+	P.assemble(arglist(args))
+	SStelecomms.transmit_packet(P)
 
 /atom/proc/receive_packet(datum/packet/P)
 	return
