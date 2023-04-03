@@ -18,6 +18,9 @@
 
 	var/last_bumped = 0
 
+	/// If TRUE, this atom will be added to SStelecomms's list of devices upon init and will receive packets.
+	var/telecomms_receiver
+
 	///Chemistry.
 	var/datum/reagents/reagents = null
 
@@ -87,6 +90,8 @@ var/global/list/pre_init_created_atoms // atom creation ordering means some stuf
 		return INITIALIZE_HINT_QDEL
 	if (light_power && light_range)
 		update_light()
+	if (telecomms_receiver)
+		SStelecomms.add_device(src)
 	if (opacity && isturf(loc))
 		var/turf/T = loc
 		T.has_opaque_atom = TRUE
@@ -676,6 +681,12 @@ var/global/list/pre_init_created_atoms // atom creation ordering means some stuf
 /atom/proc/get_visible_gender(mob/user, force)
 	return gender
 
+/atom/proc/send_packet(...)
+	var/datum/packet/P = new (null, args)
+	SStelecomms.send_packet(P)
+
+/atom/proc/receive_packet(datum/packet/P)
+	return
 
 /**
 * Constructs an atom/Topic link for the callee.
